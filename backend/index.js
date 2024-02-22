@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 
 const { generateFile } = require("./utils/generateFile");
 const { checkRequiredParams } = require("./utils/checkParams");
@@ -8,6 +9,7 @@ const { runParams } = require("./config/requiredParams");
 
 const app = express();
 
+app.use(cors());
 app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
