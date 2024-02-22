@@ -1,6 +1,10 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 
+const { generateFile } = require("./utils/generateFile");
+const { checkRequiredParams } = require("./utils/checkParams");
+const { runParams } = require("./config/requiredParams");
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -9,33 +13,27 @@ app.get("/", (req, res) => {
   return res.json({ message: "Hello World!" });
 });
 
-app.post("/run", (req, res, next) => {
-  const { language, code } = req.body;
+app.post("/run", async (req, res, next) => {
+  try {
+    checkRequiredParams(req.body, runParams);
 
-  if (!language) {
-    const error = new Error("Missing parameter: language");
-    error.status = 400;
+    const { language, code } = req.body;
+    const filePath = await generateFile(language, code);
 
+    res.json({ filePath });
+  } catch (error) {
     return next(error);
   }
 
-  if (!code) {
-    const error = new Error("Missing parameter: code");
-    error.status = 400;
-
-    return next(error);
-  }
-
-  //   TODO: Generate c++ file with content from the request
   //   TODO: Run the file and send the response
 });
 
 app.use((err, req, res, next) => {
-  res.status = err.status || 500;
+  const status = err.status || 500;
 
-  res.json({
+  res.status(status).json({
     error: {
-      message: err.message || "Error was occurred!",
+      message: err.message || "An error occurred!",
     },
   });
 });
