@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 
 const { generateFile } = require("./utils/generateFile");
 const { checkRequiredParams } = require("./utils/checkParams");
+const { executeCpp } = require("./utils/executeCpp");
 const { runParams } = require("./config/requiredParams");
 
 const app = express();
@@ -19,13 +20,17 @@ app.post("/run", async (req, res, next) => {
 
     const { language, code } = req.body;
     const filePath = await generateFile(language, code);
+    const output = await executeCpp(filePath);
 
-    res.json({ filePath });
+    res.json({ filePath, output });
   } catch (error) {
+    const { stderr, message } = error;
+    if (stderr) {
+      error.message = message.split("error:")[1];
+      error.status = 400;
+    }
     return next(error);
   }
-
-  //   TODO: Run the file and send the response
 });
 
 app.use((err, req, res, next) => {
@@ -33,7 +38,7 @@ app.use((err, req, res, next) => {
 
   res.status(status).json({
     error: {
-      message: err.message || "An error occurred!",
+      message: err.message.replace(/\s+/g, " ") || "An error occurred!",
     },
   });
 });
