@@ -5,6 +5,7 @@ const cors = require("cors");
 const { generateFile } = require("./utils/generateFile");
 const { checkRequiredParams } = require("./utils/checkParams");
 const { executeCpp } = require("./utils/executeCpp");
+const { executePy } = require("./utils/executePy");
 const { runParams } = require("./config/requiredParams");
 
 const app = express();
@@ -22,13 +23,19 @@ app.post("/run", async (req, res, next) => {
 
     const { language, code } = req.body;
     const filePath = await generateFile(language, code);
-    const output = await executeCpp(filePath);
+
+    let output;
+    if (language === "cpp") {
+      output = await executeCpp(filePath);
+    } else {
+      output = await executePy(filePath);
+    }
 
     res.json({ filePath, output });
   } catch (error) {
     const { stderr, message } = error;
     if (stderr) {
-      error.message = message.split("error:")[1];
+      error.message = message;
       error.status = 400;
     }
     return next(error);
