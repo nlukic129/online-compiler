@@ -1,9 +1,7 @@
-const checkRequiredParams = (reqParams, checkParams, errorStatus = 400) => {
+const checkRequiredParams = (reqParams, checkParams, HttpError, errorStatus = 400) => {
   for (const param of checkParams) {
     if (!reqParams[param]) {
-      const error = new Error(`Missing parameter: ${param}`);
-      error.status = errorStatus;
-      throw error;
+      throw new HttpError(`Missing parameter: ${param}`, errorStatus);
     }
   }
 };

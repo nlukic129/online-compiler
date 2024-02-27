@@ -7,8 +7,9 @@ const { generateFile } = require("./utils/generateFile");
 const { checkRequiredParams } = require("./utils/checkParams");
 const { executeCpp } = require("./utils/executeCpp");
 const { executePy } = require("./utils/executePy");
-const { runParams } = require("./config/requiredParams");
+const { runParams, getStatusParams } = require("./config/requiredParams");
 const { mongoURI, mongoOptions } = require("./config/dbConfig");
+const { HttpError } = require("./error/HttpError");
 const Job = require("./models/Job");
 
 mongoose
@@ -23,8 +24,21 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/", (req, res) => {
-  return res.json({ message: "Hello World!" });
+app.get("/status", async (req, res, next) => {
+  try {
+    checkRequiredParams(req.body, getStatusParams, HttpError);
+
+    const { id: jobId } = req.body;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      throw new HttpError(`The job with the requested id(${jobId}) does not exist.`, 404);
+    }
+
+    return res.status(200).json(job);
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.post("/run", async (req, res, next) => {
