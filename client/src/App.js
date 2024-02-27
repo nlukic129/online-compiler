@@ -17,7 +17,7 @@ function App() {
 
     try {
       const { data } = await axios.post("http://localhost:5000/run", payload);
-      setOutput(data.output.stdout);
+      setOutput(data.jobId);
     } catch (err) {
       setOutput(err.response.data.error.message);
     }

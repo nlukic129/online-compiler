@@ -1,12 +1,22 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const mongoose = require("mongoose");
 
 const { generateFile } = require("./utils/generateFile");
 const { checkRequiredParams } = require("./utils/checkParams");
 const { executeCpp } = require("./utils/executeCpp");
 const { executePy } = require("./utils/executePy");
 const { runParams } = require("./config/requiredParams");
+const { mongoURI, mongoOptions } = require("./config/dbConfig");
+const Job = require("./models/Job");
+
+mongoose
+  .connect(mongoURI, mongoOptions)
+  .then(() => {
+    console.log("Successfully connected to MongoDB database!");
+  })
+  .catch((err) => console.error("Error connecting MongoDB database:", err));
 
 const app = express();
 
@@ -18,22 +28,39 @@ app.get("/", (req, res) => {
 });
 
 app.post("/run", async (req, res, next) => {
+  let job;
   try {
     checkRequiredParams(req.body, runParams);
 
     const { language, code } = req.body;
     const filePath = await generateFile(language, code);
 
+    job = await new Job({ language, filePath }).save();
+    const jobId = job["_id"];
+
+    res.status(201).json({ success: true, jobId });
+
     let output;
+
+    job["startedAt"] = new Date();
+
     if (language === "cpp") {
       output = await executeCpp(filePath);
     } else {
       output = await executePy(filePath);
     }
 
-    res.json({ filePath, output });
+    job["competedAt"] = new Date();
+    job["status"] = "success";
+    job["output"] = output.stdout;
+
+    await job.save();
   } catch (error) {
     const { stderr, message } = error;
+    job["completedAt"] = new Date();
+    job["status"] = "error";
+    job["output"] = message;
+    await job.save();
     if (stderr) {
       error.message = message;
       error.status = 400;
