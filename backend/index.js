@@ -26,16 +26,16 @@ app.use(bodyParser.json());
 
 app.get("/status", async (req, res, next) => {
   try {
-    checkRequiredParams(req.body, getStatusParams, HttpError);
+    checkRequiredParams(req.query, getStatusParams, HttpError);
 
-    const { id: jobId } = req.body;
+    const { id: jobId } = req.query;
 
     const job = await Job.findById(jobId);
     if (!job) {
       throw new HttpError(`The job with the requested id(${jobId}) does not exist.`, 404);
     }
 
-    return res.status(200).json(job);
+    return res.status(200).json({ success: true, job });
   } catch (error) {
     return next(error);
   }
